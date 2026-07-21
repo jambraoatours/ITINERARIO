@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Gestión y Logística Integrada - Premium</title>
+
+    <!-- PWA: manifest e íconos -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2b4c5e">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Itinerario Jambraoa">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Librería de exportación -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* Estilos Globales */
+        :root {
+            --bg: #eef6fc;
+            --ink: #152047;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: sans-serif;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Fondo de Marca de Agua Sutil */
+        body::before {
+            content: "";
+            position: fixed;
+            top: -30%; left: -30%;
+            width: 160%; height: 160%;
+            transform: rotate(-45deg);
+            transform-origin: center center;
+            background-image: url("data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%201188.372%20722.340%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20transform%3D%22translate%2899.031%2C60.195%29%22%3E%3Cg%20fill%3D%22%231E2F97%22%3E%3Cpath%20d%3D%22M486.55%2C120.05c6.92%2C8.29%2C17.55%2C8.17%2C24.35-.24%2C4.22-5.22%2C6.01-11.31%2C6.08-17.92.12-10.03.1-20.06.15-30.09.08-15.61.18-31.21.24-46.82.02-6.84-1.63-13.19-6.03-18.58-7.05-8.64-17.83-8.51-24.75.25-4.16%2C5.26-5.85%2C11.38-5.9%2C17.99-.1%2C12.98-.13%2C25.96-.19%2C38.93-.16%2C0-.33%2C0-.49%2C0%2C.1%2C12.71.18%2C25.42.31%2C38.13.07%2C6.78%2C1.8%2C13.05%2C6.23%2C18.35Z%22/%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ==========================================
+           ESTILOS ORIGINALES: SECCIÓN ITINERARIO
+           ========================================== */
+        .itinerary-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; color: #334155; padding: 15px; }
+        .main-container { max-width: 1500px; margin: 0 auto; display: flex; gap: 15px; }
+        .control-panel { flex: 1.1; background: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-height: 95vh; overflow-y: auto; }
+        .panel-title { margin: 0 0 12px 0; font-size: 15px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; font-weight: 700; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 12px; color: #1e293b; background-color: #fff; }
+        .form-control:focus { outline: none; border-color: #2b4c5e; }
+        .selector-header-box { background: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-weight: bold; margin-bottom: 10px; }
+        .stops-list { display: flex; flex-direction: column; gap: 16px; }
+        .stop-item-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; position: relative; border-left: 3px solid transparent; border-right: 3px solid transparent; }
+        .order-actions { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; }
+        .btn-order { padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; background: #cbd5e1; border: none; border-radius: 3px; color: #334155; }
+        .btn-order:hover { background: #94a3b8; }
+        .emoji-picker-container { position: relative; margin-bottom: 4px; }
+        .emoji-trigger-btn { width: 100%; text-align: left; background: #fff; border: 1px solid #cbd5e1; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .emoji-dropdown { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 6px; }
+        .emoji-option { padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid #e2e8f0; font-size: 14px; background: #f8fafc; user-select: none; }
+        .emoji-option.selected { background: #2b4c5e; border-color: #2b4c5e; color: #fff; }
+        .export-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+        .btn-global { width: 100%; padding: 9px 8px; border: none; border-radius: 5px; font-weight: 700; font-size: 10px; cursor: pointer; text-transform: uppercase; text-align: center; color: white; transition: background 0.2s; }
+        .btn-jpg { background-color: #00a4c5; }
+        .btn-jpg:hover { background-color: #00819b; }
+        .btn-html { background-color: #2b4c5e; }
+        .btn-html:hover { background-color: #1c333f; }
+        .preview-panel { flex: 1.5; background: #eaedf1; padding: 15px; border-radius: 8px; display: flex; justify-content: center; align-items: flex-start; }
+              
+        /* TARJETA DE ITINERARIO */
+        .itinerary-card { 
+            position: relative; 
+            width: 100%; 
+            max-width: 440px; 
+            min-height: 900px; 
+            padding: 20px 15px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCI+CiAgPGltYWdlIGhyZWY9ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjJhV1YzUW05NFBTSXdJREFnT1Rrd0xqTXhJRFl3TVM0NU5TSWdlRzFzYm5NOUltaDBkSEE2THk5M2QzY3Vkek11YjNKbkx6SXdNREF2YzNabklqNEtDaUFnSUNBZ0lEd2hMUzBnUFQwOVBUMGdVMDlNSUQwOVBUMDlJQzB0UGdvZ0lDQWdJQ0E4WnlCbWFXeHNQU0lqTUdNNE1tRTNJajRLQ2lBZ0lDQWdJQ0FnUENFdExTQlNZWGx2SUhOMWNHVnlhVzl5SUNoaGNuSnBZbUVnWTJWdWRISnZLU0F0TFQ0S0lDQWdJQ0FnSUNBOGNHRjBhQ0JrUFNKTk5EZzJMalUxTERFeU1DNHdOV00yTGpreUxEZ3VNamtzTVRjdU5UVXNPQzR4Tnl3eU5DNHpOUzB1TWpRc05DNHlNaTAxTGpJeUxEWXVNREV0TVRFdU16RXNOaTR3T0MweE55NDVNaTR4TWkweE1DNHdNeTR4TFRJd0xqQTJMakUxTFRNd0xqQTVMakE0TFRFMUxqWXhMakU0TFRNeExqSXhMakkwTFRRMkxqZ3lMakF5TFRZdU9EUXRNUzQyTXkweE15NHhPUzAyTGpBekxURTRMalU0TFRjdU1EVXRPQzQyTkMweE55NDRNeTA0TGpVeExUSTBMamMxTGpJMUxUUXVNVFlzTlM0eU5pMDFMamcxTERFeExqTTRMVFV1T1N3eE55NDVPUzB1TVN3eE1pNDVPQzB1TVRNc01qVXVPVFl0TGpFNUxETTRMamt6TFM0eE5pd3dMUzR6TXl3d0xTNDBPU3d3TEM0eExERXlMamN4TGpFNExESTFMalF5TGpNeExETTRMakV6TGpBM0xEWXVOemdzTVM0NExERXpMakExTERZdU1qTXNNVGd1TXpWYUlpOCtDaUFnSUNBZ0lDQWdQQ0V0TFNCU1lYbHZJR2w2Y1hWcFpYSmtZU0J6ZFhCbGNtbHZjaUF0TFQ0S0lDQWdJQ0FnSUNBOGNHRjBhQ0JrUFNKTk16ZzRMams0TERFek1TNHhNbU15TGpRc055NDROeXd4TUM0MU9Td3hNaTQ0TVN3eE9DNDBOeXd4TVM0MExEZ3VOVEl0TVM0MU1pd3hOQzQwTXkwNExqY3NNVFF1TWpNdE1UY3VNVGN0TGpJMUxURXVNekV0TGpNNUxUSXVOall0TGpjM0xUTXVPVE10TlM0ek1pMHhOeTQ0TmkweE1DNDJOQzB6TlM0M01pMHhOaTR3TkMwMU15NDFOUzB5TGpJMUxUY3VORE10T1M0eE5TMHhNaTR4TVMweE5pNDVNUzB4TVM0M01TMDNMalV6TGpNNUxURXpMamc1TERVdU9UWXRNVFV1TkRNc01UTXVORFl0TGpjNUxETXVPRFF1TWpFc055NDBNaXd4TGpNc01URXVNRFFzTlM0d055d3hOaTQ0TVN3eE1DNHdNeXd6TXk0Mk5pd3hOUzR4TlN3MU1DNDBObG9pTHo0S0lDQWdJQ0FnSUNBOElTMHRJRkpoZVc4Z2FYcHhkV2xsY21SaElHUnBZV2R2Ym1Gc0lDMHRQZ29nSUNBZ0lDQWdJRHh3WVhSb0lHUTlJazB5TlRJdU1qVXNNVE0xWXpFMkxqazNMREU1TGpBMUxETXpMamsxTERNNExqRXNOVEF1T1RRc05UY3VNVFFzTXk0eE9Dd3pMalUzTERZdU9UUXNOaTR6T0N3eE1TNDBNU3c0TGpFMUxEUXVNak1zTVM0Mk9DdzRMalU0TERJdU16a3NNVE11TURVc01TNHhNaXcyTGpnMUxURXVPVFFzTVRBdU9EY3RPQzR3T0N3eE1DNDBPQzB4Tnk0d01TMHVOREV0TlM0NU15MHpMak0wTFRFeExqZ3lMVGN1T1RJdE1UWXVPVFl0TVRZdU9UZ3RNVGt1TURVdE16TXVPVFF0TXpndU1URXROVEF1T1RRdE5UY3VNVE10TkM0d05TMDBMalUwTFRndU9UWXROeTQ0TFRFMExqazBMVGt1TWpRdE1URXVPRGt0TWk0NE5pMHlNQzQ0TlN3MExqWTNMVEU1TGpreExERTJMamcyTGpVeExEWXVOakVzTXk0ME9Td3hNaTR4T0N3M0xqZzBMREUzTGpBM1dpSXZQZ29nSUNBZ0lDQWdJRHdoTFMwZ1VtRjVieUJrWlhKbFkyaGhJR1JwWVdkdmJtRnNJQzB0UGdvZ0lDQWdJQ0FnSUR4d1lYUm9JR1E5SWswMk5qTXVPREVzTVRjNExqZzRZell1T0RNdE1TNHpNaXd4TWk0eU5DMDBMamt6TERFMkxqYzJMVEV3TGpBMkxERXhMall6TFRFekxqRTVMREl6TGpJMkxUSTJMak01TERNMExqa3RNemt1TlRnc05TNHhNUzAxTGpjNUxERXdMakl5TFRFeExqVTRMREUxTGpNeUxURTNMak00TERRdU9UZ3ROUzQyTml3NExqQXlMVEV5TGpFeExEY3VPVFl0TVRndU9ERXRMalExTFRFd0xqSTRMVGN1TURRdE1UWXVNelV0TVRZdU16RXRNVFV1TnpVdE55NDFNeTQwT1MweE15NDFPQ3cwTGpFMUxURTRMalEzTERrdU5qWXRNVGN1TVRnc01Ua3VNemd0TXpRdU15d3pPQzQ0TWkwMU1TNHpPU3cxT0M0eU9DMDBMakl4TERRdU56a3ROaTQzTlN3eE1DNHpOeTAzTGpNMExERTJMamd0TVM0d01Td3hNUzR3TlN3M0xqWTVMREU0TGprMExERTRMalUyTERFMkxqZzBXaUl2UGdvZ0lDQWdJQ0FnSUR3aExTMGdVbUY1YnlCa1pYSmxZMmhoSUhOMWNHVnlhVzl5SUMwdFBnb2dJQ0FnSUNBZ0lEeHdZWFJvSUdROUlrMDFOemN1TmpVc01UTXpMalF6WXpndU9UUXNNaTR6T0N3eE55NDVNaTB5TGpnNExESXdMalEyTFRFeUxDNDJOeTB5TGpReUxERXVNamt0TkM0NE55d3hMamt6TFRjdU15dzBMakEwTFRFMUxqTXlMRGd1TVRJdE16QXVOalFzTVRJdU1UTXRORFV1T1Rjc01pNDRPUzB4TVM0d055MDFMalEzTFRJeExqVTFMVEUyTGpjMUxUSXhMakE0TFRjdU1UVXVNamt0TVRNdU15dzFMakF5TFRFMUxqTXlMREV4TGprekxURXVNVGNzTkM0d01TMHlMakUzTERndU1EY3RNeTR5TXl3eE1pNHhMVE11Tmpnc01UTXVPVE10Tnk0ek9Td3lOeTQ0TkMweE1TNHdNU3cwTVM0M09DMHlMak00TERrdU1UY3NNaTQ0TXl3eE9DNHhOU3d4TVM0NE1Td3lNQzQxTkZvaUx6NEtJQ0FnSUNBZ0lDQThJUzB0SUZKaGVXOGdaR1Z5WldOb1lTQm9iM0pwZW05dWRHRnNJQzB0UGdvZ0lDQWdJQ0FnSUR4d1lYUm9JR1E5SWswNE5Ua3VNVFlzTWpnMkxqSXhZeTAxTGpJNUxUTXVOemt0TVRFdU1qa3ROQzQ1TnkweE9DNHhNUzAwTGpjNExURXdMak15TERFdU1qTXRNakV1TURjc01pNDBPUzB6TVM0NE15d3pMamM0TFRFMUxqRTJMREV1T0RJdE16QXVNelFzTXk0Mk5DMDBOUzQxTVN3MUxqUTNMVGN1TURZdU9EVXRNVE11TkRRc015NHlNeTB4T0M0ME1TdzRMalUwTFRjdU16UXNOeTQ0TWkwMkxqQTVMREU0TGpFeExESXVPVEVzTWpNdU9UUXNOUzQyT0N3ekxqWTRMREV5TGpBeUxEUXVOellzTVRndU5qUXNOQzR3TWl3eE1TNDJNaTB4TGpJNUxESXpMakl4TFRJdU56VXNNelF1T0RFdE5DNHhOU3d4TXk0Mk9DMHhMalkwTERJM0xqTTJMVE11TWprc05ERXVNRFF0TkM0NU15dzNMalV5TFM0NUxERTBMakkyTFRNdU5Td3hPUzR5T1MwNUxqUTFMRFl1TWpNdE55NHpPQ3cxTFRFMkxqZ3pMVEl1T0RRdE1qSXVORFJhSWk4K0NpQWdJQ0FnSUNBZ1BDRXRMU0JTWVhsdklHUmxjbVZqYUdFZ2FXNW1aWEpwYjNJZ1pHbGhaMjl1WVd3Z0xTMCtDaUFnSUNBZ0lDQWdQSEJoZEdnZ1pEMGlUVGM0T0M0ek55d3lNekF1T1Roak5pNHpNaTB5TGpneUxERXdMakV6TFRrdU1Ea3NPUzQ1TFRFMUxqZ3RMakV5TFM0NE5TMHVNVGt0TVM0M01TMHVNell0TWk0MU5DMHlMakk0TFRFd0xqYzVMVEV6TGpFeUxURTJMalEwTFRJekxqSTRMVEV5TGpBNExUZ3VNekVzTXk0MU55MHhOaTQxT1N3M0xqSXhMVEkwTGpnM0xERXdMamd6TFRndU5qZ3NNeTQzT1MweE55NHpPU3czTGpVeUxUSTJMakF5TERFeExqUXROeTR4T0N3ekxqSXpMVEV4TGpFeUxERXdMamszTFRrdU5UVXNNVGd1TXpVc01pNHpMREV3TGpjNUxERXpMakV6TERFMkxqUXpMREl6TGpJNUxERXlMakE0TERZdU16a3RNaTQzTkN3eE1pNDNOaTAxTGpVMExERTVMakUwTFRndU16TXNNVEF1TlRrdE5DNDJNaXd5TVM0eU1TMDVMaklzTXpFdU56WXRNVE11T1ZvaUx6NEtJQ0FnSUNBZ0lDQThJUzB0SUVOMVpYSndieUJrWld3Z2MyOXNJQ2h6WlcxcFk4T3RjbU4xYkc4cElDMHRQZ29nSUNBZ0lDQWdJRHh3WVhSb0lHUTlJazAzTWpNdU5Td3pNakl1TmpaakxUa3VNVFF0TkRFdU1UTXRNamd1TURrdE56Y3VNall0TlRjdU1pMHhNRGN1TnpJdE5ESXVOelF0TkRRdU56VXRPVFV1TWpFdE5qZ3VPRFF0TVRVM0xqQXpMVGN5TGpFekxUSTJMalV6TFRFdU5ERXROVEl1TmpFc01TNDRMVGMzTGprMExEa3VPRE10TmpBdU56Z3NNVGt1TWpZdE1UQTJMak0wTERVM0xqRTBMVEV6Tmk0ME5Td3hNVE11TWpZdE1UY3VOaXd6TWk0NExUSTJMakE0TERZNExqQTVMVEkyTGpNNExERXdOUzR6TXl3d0xERXVNekV1TkRRc01TNDJPU3d4TGpZekxESXNNVEF1TkRNc01pNDJPQ3d5TUM0NU5DdzFMakV5TERNeExqSXpMRGd1TWpZc01UVXVNVE1zTkM0Mk1Td3pNQzR3Tnl3NUxqZ3pMRFExTGpFekxERTBMall6TERFeUxqQXlMRE11T0RNc01qUXVNVGtzTnk0eE1Td3pOaTQzTnl3NExqUXpMRE11T0RndU5DdzNMamd5TGpjekxERXhMamN4TGpVeExERXdMak10TGpVNUxESXdMakl4TFRNdU1qZ3NNamt1T1RFdE5pNDJMREUyTGpBNExUVXVOVEVzTXpJdU1ESXRNVEV1TkN3ME9DNHhNUzB4Tmk0NE5pd3hNaTQzTVMwMExqTXhMREkxTGpZNUxUY3VOellzTXprdU1pMDRMak0yTERjdU1qSXRMak15TERFMExqUTVMUzQyTWl3eU1TNDJPUzB1TVN3eE15NDFMams0TERJMUxqZzFMRFV1T0Rrc016Y3VORGdzTVRJdU5qSXNNU3d1TlRnc01TNDFOeTQxTlN3eUxqUTJMUzR5TlN3NUxUZ3VNak1zTVRndU5TMHhOUzQ0TVN3eU9TNHdNUzB5TWk0d05pd3hNQzR3TmkwMkxESXdMalkzTFRFd0xqWTRMRE15TGpBNUxURXpMak01TERFMUxqYzNMVE11TnpNc016RXVOemd0TXk0NU15dzBOeTQ0TXkwekxqQTJMREV4TGpFM0xqWXNNakl1TURjc015NHdPQ3d6TXk0d05TdzFMakEyTERRdU1EVXVOek1zT0M0eE15d3hMak0xTERFeUxqUTBMREl1TURjdExqQTFMUzQ1T1MwdU1ESXRNUzQyTkMwdU1USXRNaTR5TmkweExqVXRPUzQzTkMweUxqVXRNVGt1TmkwMExqWTBMVEk1TGpFNVdpSXZQZ29nSUNBZ0lDQWdJRHdoTFMwZ1VtRjVieUJwZW5GMWFXVnlaR0VnYVc1bVpYSnBiM0lnWkdsaFoyOXVZV3dnTFMwK0NpQWdJQ0FnSUNBZ1BIQmhkR2dnWkQwaVRUSTRNaTR4TVN3eU5UQXVNalZqTFM0MU5DMDJMakExTFRNdU1UVXRNVEF1T0RrdE9DNDFMVEV6TGpndE1UWXVOVEl0T0M0NU5pMHpNeTR3T1MweE55NDROQzAwT1M0M015MHlOaTQxT0MweUxqRTVMVEV1TVRVdE5DNDVMVEV1TnpJdE55NHpPUzB4TGpjM0xUY3VOamd0TGpFMUxURTBMakkyTERVdU1TMHhOaTR4Tml3eE1pNDBOaTB4TGpnNUxEY3VNekVzTVM0ek1Td3hOQzQ1TWl3M0xqazBMREU0TGpjeExESXVPVGNzTVM0M0xEWXVNRE1zTXk0eU5pdzVMakExTERRdU9EZ3NNVE11TXpZc055NHhOaXd5Tmk0M0xERTBMak0wTERRd0xqQTVMREl4TGpRMUxEVXVOeklzTXk0d05Dd3hNUzQwT0N3eUxqZzRMREUyTGprMUxTNDFPQ3cxTGpNM0xUTXVOQ3czTGpjMUxUZ3VOVElzTnk0M05pMHhOQzQzT0ZvaUx6NEtJQ0FnSUNBZ0lDQThJUzB0SUZKaGVXOGdhWHB4ZFdsbGNtUmhJR2h2Y21sNmIyNTBZV3dnTFMwK0NpQWdJQ0FnSUNBZ1BIQmhkR2dnWkQwaVRUSXpOUzQyTml3ek1UQXVNamRqTFRJeUxqa3lMVFF1TURrdE5EVXVPRFl0T0M0eExUWTRMamd0TVRJdU1Ea3ROUzR4TVMwdU9Ea3RNVEF1TVRndE1pNHhOaTB4TlM0ME5TMHhMall4TFRVdU5UY3VOVGd0TVRBdU5qZ3NNaTR5TnkweE5DNDRNU3cyTGpJMExUVXVPRGtzTlM0Mk9DMDFMamsxTERFMExqSTRMUzR4TERJd0xqazJMRFF1TlN3MUxqRTBMREV3TGpNeUxEY3VPVElzTVRZdU9UUXNPUzR3T1N3eU1pNDRPQ3cwTGpBMUxEUTFMamMyTERndU1EY3NOamd1TmpRc01USXVNRFlzTkM0Mk9DNDRNU3c1TGpRc01TNDBNaXd4TWk0eUxERXVPRFFzTnk0d09TMHVOREVzTVRFdU9URXRNUzQyTml3eE5pNHhNUzAwTGpjMExEY3VNVFF0TlM0eU1pdzRMalUyTFRFekxqYzRMRE11TkRRdE1qQXVPVFl0TkM0ME5pMDJMakkxTFRFd0xqZ3lMVGt1TkRndE1UZ3VNVGd0TVRBdU56bGFJaTgrQ2lBZ0lDQWdJRHd2Wno0S0NpQWdJQ0FnSUR3aExTMGdQVDA5UFQwZ1RVRlNJT0tBbENBM0lHOXNZWE1nWlc0Z015QnVhWFpsYkdWeklEMDlQVDA5SUMwdFBnb2dJQ0FnSUNBOElTMHRDaUFnSUNBZ0lDQWdUbWwyWld3Z01TQW9iY09oY3lCaGJIUnZMQ0IrZVNBek56QXROREl3S1RvZ01pQnZiR0Z6TENCMWJtRWdaR1Z6WkdVZ2FYcHhkV2xsY21SaElIa2diM1J5WVNCa1pYTmtaU0JrWlhKbFkyaGhDaUFnSUNBZ0lDQWdUbWwyWld3Z01pQW9iV1ZrYVc4c0lINTVJRFEwTUMwME9UQXBPaUFnSUNBeklHOXNZWE1nWkdsemRISnBZblZwWkdGekNpQWdJQ0FnSUNBZ1RtbDJaV3dnTXlBb1ltRnFieXdnZm5rZ05URXdMVFl3TVNrNklDQWdJQ0F5SUc5c1lYTXNJRzNEb1hNZ1lXNWphR0Z6SUhrZ2NHVnpZV1JoY3dvZ0lDQWdJQ0FnSUVacFpXd2dZU0JzYjNNZ2NHRjBhSE1nYjNKcFoybHVZV3hsY3lCa1pXd2dVMVpITGdvZ0lDQWdJQ0F0TFQ0S0lDQWdJQ0FnUEdjZ1ptbHNiRDBpSXpCak9ESmhOeUkrQ2dvZ0lDQWdJQ0FnSUR3aExTMGdUMHhCSURFZzRvQ1VJRTVwZG1Wc0lERXNJR1JsYzJSbElHUmxjbVZqYUdFZ0tHOXlhV2RwYm1Gc0lIQmhkR2dnY0dWeGRXWERzVzhnWkdWeVpXTm9ieWtnTFMwK0NpQWdJQ0FnSUNBZ1BIQmhkR2dnWkQwaVRUZzJNaTR6T1N3ek56SXVOSE10TVM0eE9DNHhNeTB6TGpNMExqVXhZeTB5TGpFNExqTTBMVFV1TXpRdU9URXRPUzR6TXl3eExqYzJMVFF1TURJdU56Y3RPQzQ0TVN3eUxqQTFMVEUwTGpNeUxETXVNemN0TlM0ME9Td3hMak0zTFRFeExqWXlMRE11TVRJdE1UZ3VNaXcwTGprdE5pNDFPQ3d4TGpnNExURXpMall4TERNdU5qY3RNakF1T0RFc05DNDVOeTAzTGpJeUxERXVNamd0TVRRdU5UVXNNUzQzTFRJeUxqTXlMREV1TURrdE15NDRPQzB1TXpRdE55NDRPUzB1T1RRdE1URXVPVGd0TVM0MkxUUXVNVEl0TGpnNExUZ3VNamt0TVM0Mk5DMHhNaTQxTnkweUxqY3hMVFF1TWpVdExqazNMVGd1TlRrdE1pNHhOaTB4TWk0NU5pMHpMakkwYkMwMkxqYzFMVEV1TnpsakxUSXVNekl0TGpVM0xUUXVOelF0TVM0eE5pMDNMakE0TFRFdU5qWXRPUzR6T0MweUxqQTNMVEU1TFRNdU5EZ3RNamd1TlRrdE15NDNOeTA1TGpVNExTNHpOaTB4T1M0eE1pNDFOQzB5T0M0d09Td3lMalE1TFRndU9UY3NNaTR3TVMweE55NHpOU3cxTGpBMExUSTBMamcxTERndU56TXROeTQxTWl3ekxqWTJMVEUwTGpJMUxEY3VOell0TWpBdU1UVXNNVEV1T1RZdE1URXVPRFFzT0M0ek5TMHlNQzQyT1N3eE5pNDFOQzB5Tmk0NExESXlMak0wTFRZdU1ETXNOUzQ1TVMwNUxqTXhMRGt1TkRjdE9TNHpNU3c1TGpRM0xEQXNNQ3cwTGpBeUxUSXVORFVzTVRFdU1EWXROaTQzTkN3ekxqVXhMVEl1TVRNc055NDNOUzAwTGpjekxERXlMamN4TFRjdU5EWXNOQzQ1TWkweUxqYzVMREV3TGpRM0xUVXVPU3d4Tmk0Mk5pMDRMamd5TERZdU1Ua3RNaTQ1TVN3eE1pNDVNaTAxTGpneUxESXdMakUxTFRndU1Ua3NOeTR5TWkweUxqTTVMREUwTGprekxUUXVNVGtzTWpJdU9UVXROUzR3T1N3NExqQXlMUzQ1TlN3eE5pNHpOQzB1T0RRc01qUXVPREV1TURNc09DNDBOaTQ1TkN3eE55NHdOeXd5TGpZNUxESTFMalkxTERWc05pNHpOU3d4TGpneExEWXVOVGtzTWk0d01XTTBMalV4TERFdU5ESXNPQzQ1T1N3eUxqZzFMREV6TGpZc015NDVOQ3c1TGpFeExESXVNemNzTVRndU5EY3NOQzR4Tml3eU55NDVOQ3cwTGpNMExEa3VORFF1TXpJc01UZ3VOemd0TVM0eUxESTJMamc1TFRNdU9DdzRMakUxTFRJdU5UWXNNVFV1TWprdE5TNDRPQ3d5TVM0MkxUa3VNVFFzTmk0ek5TMHpMakkzTERFeExqazNMVFl1TkRnc01UWXVPVEV0T1M0ME5TdzBMamt5TFRNdU1EUXNPUzR5TWkwMUxqVXpMREV5TGpZNUxUY3VPRGtzTXk0MU1TMHlMakl5TERZdU1qVXROQzR3Tml3NExqQTVMVFV1TXpZc01TNDROaTB4TGpJMkxESXVPRE10TWl3eUxqZ3pMVEphSWk4K0Nnb2dJQ0FnSUNBZ0lEd2hMUzBnVDB4QklESWc0b0NVSUU1cGRtVnNJREVzSUdSbGMyUmxJR2w2Y1hWcFpYSmtZU0FvYjJ4aElHZHlZVzVrWlNCeGRXVWdkbUVnWkdVZ2ZuZ3lOU0JoSUhnek5qVXBJQzB0UGdvZ0lDQWdJQ0FnSUR4d1lYUm9JR1E5SWsweU5TNDBOeXcwTkRJdU16TnpNaTR5TFM0ME9DdzJMak0wTFRFdU16ZGpNaTR3TnkwdU5ERXNOQzQyTWkwdU9USXNOeTQyTWkweExqVXhMRE10TGpZMExEWXVNamt0TVM0Mk9DdzVMams0TFRJdU5Ua3NNUzQ0TXkwdU5EZ3NNeTQzTmkwdU9Ua3NOUzQzT0MweExqVXpMREl1TURFdExqWTBMRFF1TVRJdE1TNHpNaXcyTGpNeUxUSXVNRElzTWk0eE9DMHVOamtzTkM0ME5TMHhMalF4TERZdU9DMHlMakUyTERJdU16SXRMamcyTERRdU56TXRNUzQzTlN3M0xqSXhMVEl1Tmpjc09TNDVNaTB6TGpVNExESXdMamcwTFRndU16RXNNekl1T1RVdE1UTXVOaklzTVRJdU1USXROUzR5TXl3eU5TNDBNaTB4TVM0ekxEUXdMamcwTFRFMkxqUXNNVFV1TXpJdE5TNHdOaXd6TWk0NU9TMDVMakE0TERVeExqZzVMVGt1TVRrc05DNDNNaTB1TWpVc09TNDBOaTR3TkN3eE5DNHlOQzQxTERJdU16a3VNakVzTkM0M09TNDBNaXczTGpJdU5qUXNNaTR6Tmk0ME1pdzBMamN6TGpnMUxEY3VNVEVzTVM0eU4ydzNMakUyTERFdU16TXNNUzQ0TGpNMExESXVNREl1TkRrc015NHhOQzQzT1dNMExqSTJMREV1TVRNc09DNHlNeXd5TGpBM0xERXlMamMyTERNdU5EY3NOQzQwTnl3eExqTTRMRGd1T1Rjc01pNDNOeXd4TXk0ME55dzBMakUyTERRdU16SXNNUzQwTkN3NExqWTJMREl1T1RFc01USXVPVFVzTkM0ME55dzRMak0yTERNdU1UY3NNVFl1TnpZc05pNHpOQ3d5TlM0eE5pdzVMalV5TERFMkxqTTJMRFl1TlRNc016SXVNRElzTVRJdU5EVXNORFl1T0RVc01UWXVNVGtzTVM0NE5pNDBOQ3d6TGpjeUxqazNMRFV1TlRZc01TNHpOR3cxTGpRNExqa3lZek11TmpVdU9EVXNOeTR5TXk0NU9Td3hNQzQ0TVN3eExqUXNNUzQ0TGpJMkxETXVOVGd1TXpJc05TNHpOUzR5Tm13MUxqTXlMakF6WXpNdU5UUXVNRElzTnk0d05TMHVOVElzTVRBdU5UZ3RMalk1TERjdU1ETXRMamczTERFekxqazJMVEl1TXpFc01qQXVPRE10TkM0eU55d3hMamMwTFM0ME9Dd3pMalF0TGpneExEVXVNVGt0TVM0ME1Td3hMamc0TFM0Mk1Td3pMamMyTFRFdU1qSXNOUzQyTWkweExqZ3lMRE11TnpFdE1TNHhPU3czTGpNNExUSXVNemNzTVRFdE15NDFNaXd4TkM0ek9TMDBMalUwTERJNExqSTVMVGd1T1Rrc05ERXVOekl0TVRJdU5ERXNNVE11TkMwekxqTTVMREkyTGpZM0xUVXVOaXd6T0M0Mk15MDFMakV6TERFeExqazNMak01TERJeExqa3lMRE11TkN3eU9TNDBNaXcyTGpRNUxERXVPRGN1T0N3ekxqWXpMREV1TlRZc05TNHpMREl1TWpjc01TNDFPUzQ0TkN3ekxqQTRMREV1TmpRc05DNDBOeXd5TGpNM0xESXVOemNzTVM0ME15dzFMakEwTERJdU56WXNOaTQ0TlN3ekxqa3lMRE11TlRrc01pNHlPU3cxTGpVeExETXVOVEVzTlM0MU1Td3pMalV4TERBc01DMHlMakl5TFM0ek9TMDJMak00TFRFdU1USXRNaTR3TkMwdU5ETXROQzQxT1MwdU9EY3ROeTQxT0MweExqSXhMVEl1T1RjdExqUXpMVFl1TXpjdExqZzBMVEV3TGpFMExURXVNRFV0Tnk0MU15MHVORGd0TVRZdU5EVXRMalF0TWpZdU1ERXNNUzQ1TXkwNUxqVTVMREl1TWpRdE1Ua3VPVGNzTmk0MU9TMHpNUzQxTXl3eE1pNHlPQzB4TVM0MU55dzFMalkxTFRJMExqSTBMREV5TGpReExUTTRMakVzTVRrdU1qWXRNeTQwTml3eExqYzNMVFl1T1RZc015NDBNaTB4TUM0ME9TdzFMakV4TFRFdU56Y3VPRFF0TXk0MU5Td3hMalk1TFRVdU16UXNNaTQxTlMweExqZzJMamt4TFRRdU1ETXNNUzQzTVMwMkxqQTFMREl1TlRndE9DNHhNaXd6TGpZMkxURTNMakEwTERZdU16RXRNall1TXpFc09DNDFNUzB4T0M0Mk5DdzBMakl0TXprdU16Z3NOQzR3TXkwMU9DNDFNUzR3TkMweE9TNHlPQzB6TGpjekxUTTJMamt6TFRFd0xqVXROVE11TmpJdE1UWXVPRFl0T0M0eE5pMHpMakl6TFRFMkxqTXlMVFl1TkRVdE1qUXVORFF0T1M0Mk55MDBMakF4TFRFdU5EZ3ROeTQ1T0MweUxqazRMVEV4TGprekxUUXVOVE10TXk0NE5DMHhMak00TFRjdU5qY3RNaTQzTmkweE1TNDBPQzAwTGpFekxUTXVOelV0TVM0ek9DMDRMakl4TFRJdU5qRXRNVEl1TWpNdE15NDVObXd0TXk0d09DMHhMakF5TFM0M055MHVNalV0TGpNNExTNHhNMk11TnpNdU1pNHhMakF6TGpJeUxqQTNiQzB1TVRjdExqQTBMVEV1TXpVdExqTTFMVFV1TkRFdE1TNDBNUzAxTGpNNUxURXVORE10TlM0MExTNDROUzAxTGpNM0xTNDVOR010TVM0M09TMHVNelF0TXk0MU9TMHVNek10TlM0ek9DMHVOVEl0TVRRdU16RXRNUzR6TVMweU9DNDJNeTB1TVRZdE5ESXVOemNzTWk0eU5pMHhOQzR4TWl3eUxqTTFMVEk0TGpBekxEVXVPQzAwTVM0eU5pdzRMalV6TFRFekxqSXhMREl1TnpNdE1qVXVOamdzTkM0NU1TMHpOaTQ0Tnl3MUxqZ3pMVEl1TnprdU1qTXROUzQwT0M0ME5TMDRMakE1TGpZM0xUSXVOakl1TVRNdE5TNHhOaTR4TXkwM0xqVTRMakUzTFRJdU5ERXVNRE10TkM0M015NHdOUzAyTGprMExqQTRMVEl1TWpNdExqQTBMVFF1TXprdExqSTJMVFl1TkMwdU16Y3ROQzR3TWkwdU15MDNMall0TGpRekxURXdMall5TFM0NU5DMHpMakF5TFM0MUxUVXVOVGd0TGprekxUY3VOall0TVM0eU55MDBMakUyTFM0M05pMDJMak00TFRFdU1UY3ROaTR6T0MweExqRTNXaUl2UGdvS0lDQWdJQ0FnSUNBOElTMHRJRTlNUVNBeklPS0FsQ0JPYVhabGJDQXlMQ0JwZW5GMWFXVnlaR0VnS0dSbGMyUmxJSGd3TENCamRYSjJZU0J2Y21mRG9XNXBZMkVwSUMwdFBnb2dJQ0FnSUNBZ0lEeHdZWFJvSUdROUlrMHlPRFV1T0RVc05EZzVMakV4WXkwNE55NHpOQzAzTWk0eExURTBNaTR6TkN3eU5pNDVNeTB5T0RVdU9EVXRNaTR5T1N3eE5UWXVOellzTnpjdU9Ua3NNakF5TGpJeExUSTRMalFzTWpnMUxqZzFMREl1TWpsYUlpOCtDZ29nSUNBZ0lDQWdJRHdoTFMwZ1QweEJJRFFnNG9DVUlFNXBkbVZzSURJc0lHTmxiblJ5Ynk5a1pYSmxZMmhoSUNodmJHRWdiR0Z5WjJFZ2NYVmxJSFpoSUdSbElIZzBOellnWVNCK2VEazVNQ2tnTFMwK0NpQWdJQ0FnSUNBZ1BIQmhkR2dnWkQwaVRUUTNOaTQwTVN3MU1qSXVOakp6TVM0M09TMHhMakV6TERVdU1UUXRNeTR5Tm1NeExqY3RNUzR3TWl3ekxqY3hMVEl1TXpVc05pNHpOeTB6TGpZeExESXVOaTB4TGpJMkxEVXVOamd0TXk0d015dzVMakl4TFRRdU1qZ3NOeTR3TVMweUxqazBMREUxTGpreUxUVXVOallzTWpZdU5Ea3ROeTQyT1N3eE1DNDFOUzB4TGpnMkxESXlMamN5TFRJdU9ETXNNelV1T0RjdE1pNDFOQ3d4TXk0eE5DNHlPU3d5Tnk0eU1pd3hMamd4TERReExqWTVMRFF1TVRnc01UUXVORGNzTWk0ek9Td3lPUzR6Tml3MUxqVXpMRFEwTGpNMUxEZ3VPRGNzTnk0ME1Td3hMall4TERFMExqazBMRE11TWpVc01qSXVOVGNzTkM0NU1TdzNMalUwTERFdU5USXNNVFV1TVRFc015NHdOQ3d5TWk0MkxEUXVNellzTVRVdU1EVXNNaTQxTVN3ek1DNHdNU3cwTGpVMUxEUTBMalUzTERRdU5USXNNVFF1TlRjdU15d3lPQzQzTXkweExqSTNMRFF5TGpNMExUUXVNemtzTXk0ek9TMHVPVFVzTmk0M09DMHhMamc1TERFd0xqRTBMVEl1T0RRc015NDROaTB4TGpFM0xEY3VOamt0TWk0ek15d3hNUzQxTVMwekxqUTRMRGN1TmpRdE1pNHpMREUxTGpFeUxUUXVOalFzTWpJdU5UY3ROaTQzTWl3eE5DNDROeTAwTGpNekxESTVMalF5TFRndU15dzBNeTQxTXkweE1TNDJPU3d4TkM0d055MHpMak00TERJM0xqYzFMVFl1TVRVc05EQXVPRFl0Tnk0Mk9Dd3hNeTR3T0MweExqVXlMREkxTGpVMkxURXVOelFzTXpZdU5EWXRMak1zTVRBdU9USXNNUzQyTERFNUxqazJMRFF1TXprc01qWXVPVFlzTnk0ek9DdzNMREl1T1Rnc01USXVNU3cxTGpreUxERTFMalVzTnk0NU9Td3pMalF4TERJdU1EWXNOUzR4Tnl3ekxqSXpMRFV1TVRjc015NHlNeXd3TERBdE1pNHhMUzR5TWkwMkxqQTFMUzQyTkMwekxqZzJMUzQxT1MwNUxqWTFMUzQ1TXkweE5pNDNMVEV1TWpRdE55NHdPUzB1TWpFdE1UVXVOUzR4T0MweU5DNDNNU3d4TGpZNExUa3VNalFzTVM0Mk5TMHhPUzR6TkN3MExqWTJMVE13TGpNMkxEZ3VOemd0TVRFdU1ESXNOQzR3TlMweU1pNDVPU3c1TGpJeExUTTFMamd6TERFMExqZ3pMVEV5TGpnekxEVXVOVEl0TWpZdU5EZ3NNVEV1TlRZdE5EQXVPQ3d4Tnk0MUxUY3VNVFFzTXk0d055MHhOQzQxTERVdU9UY3RNakV1T0Rrc09DNDVNaTB6TGpjc01TNDBPQzAzTGpRekxESXVPVFl0TVRFdU1UY3NOQzQwTmkwMExqRTNMREV1TkRndE9DNDJOU3d5TGprM0xURXpMakF5TERRdU16a3RNVGN1Tnpjc05TNHpPQzB6Tmk0M01TdzNMalUwTFRVMUxqRTBMRGN1TkRNdE1UZ3VORGd0TGpNdE16WXVNell0TWk0NU9TMDFNeTR4TXkwMkxqa3pMVGd1TkRRdE1TNDRNeTB4Tmk0MU15MDBMakUyTFRJMExqUTBMVFl1TlRJdE55NDRPUzB5TGpNM0xURTFMalUxTFRRdU9DMHlNaTQ1TXkwM0xqUXhMVEUwTGpndE5TNHdOQzB5T0M0Mk5TMHhNQzR5TkMwME1TNDNMVEUwTGpjNExURXpMakF6TFRRdU5UZ3RNalV1TWpVdE9DNDFOeTB6Tmk0Mk5TMHhNUzQxT1MweE1TNHpPUzB6TGpBM0xUSXhMamsyTFRVdU1UTXRNekV1TlRFdE5pNHpPUzA1TGpVekxURXVNUzB4T0M0d05TMHhMalE0TFRJMUxqRTFMVEV1TXkwM0xqQXlMakkwTFRFeUxqY3lMalEzTFRFMkxqWTNMREV1TVRVdE15NDVOQzQwTlMwMkxqQTFMalk1TFRZdU1EVXVOamxhSWk4K0Nnb2dJQ0FnSUNBZ0lEd2hMUzBnVDB4QklEVWc0b0NVSUU1cGRtVnNJRElzSUdSbGNtVmphR0VnS0dSbGMyUmxJSGcxTXpBZ2FHRmphV0VnZURrNU1Da2dMUzArQ2lBZ0lDQWdJQ0FnUEhCaGRHZ2daRDBpVFRrek5TNDRNaXcwTlRZdU16ZHpMVFUxTGpnekxUVXdMakF6TFRFeE5pNDJNeTAwTXk0ME5HTXROakF1Tnprc05pNDFPUzAyTlM0ME9Dd3lOUzQyTnkweE1qWXVNemtzTXpJdU1qY3ROakF1T1RJc05pNDJMVGd4TFRFNExqUTRMVEUyTWk0M0xERXhMakV5TERjeExqY3lMVEV1TlN3eE1UVXVOalFzTWprdU5EY3NNVGd3TGpFM0xESTBMak00TERrNUxqZzJMVGN1T0Rnc01UTXpMamsxTFRVNUxqTTRMREl5TlM0MU5TMHlOQzR6TWxvaUx6NEtDaUFnSUNBZ0lDQWdQQ0V0TFNCUFRFRWdOaURpZ0pRZ1RtbDJaV3dnTXl3Z2FYcHhkV2xsY21SaElDaGpkWEoyWVNCc1lYSm5ZU0J4ZFdVZ2FXNWpiSFY1WlNCamIzTjBZU0JwZW5GMWFXVnlaR0VwSUMwdFBnb2dJQ0FnSUNBZ0lEeHdZWFJvSUdROUlrMHpPQzR4Tml3MU5UQXVNVGhqTnpZdU1qVXNORGN1TVRVc01URXpMakExTERFNExqQTNMREU1TVM0NE1TdzRMalE1TERrM0xqTXpMVEV4TGpnekxERTBPQzQwTWl3ME1TNHpOaXd5TWprdU9EWXRORFF1TnpRdE56Y3VOVGtzTlRJdU1qa3RNVFEwTGprNUxUY3VNek10TWpJM0xqazNMRFV1TVRNdE5qVXVNVFlzT1M0M09TMHhNREF1TURZc05URXVNall0TVRrekxqWTVMRE14TGpFeVdpSXZQZ29LSUNBZ0lDQWdJQ0E4SVMwdElFOU1RU0EzSU9LQWxDQk9hWFpsYkNBekxDQjZiMjVoSUdsdVptVnlhVzl5SUdObGJuUnlZV3d2WkdWeVpXTm9ZU0F0TFQ0S0lDQWdJQ0FnSUNBOGNHRjBhQ0JrUFNKTk5qQXlMak16TERZd01TNDVOWE10TXk0eU9TMHVOekl0T0M0NE9TMHlMakk1WXkweUxqZ3RMamN5TFRZdU1Ua3RNUzQ1TFRFd0xqQTJMVEl1TnprdE15NDRPQzB1T1RNdE9DNHhPUzB4TGprNUxURXlMamd4TFRNdU1qY3ROQzQzTnkwdU9UWXRPUzQ0TnkweUxqQTVMVEUxTGpJMExUTXVNall0TlM0ME5pMHVPREl0TVRFdU1EWXRNaTR5TFRFMkxqazRMVEl1T1MweUxqazBMUzQwTWkwMUxqa3pMUzQ0TlMwNExqazJMVEV1TWpndE15NHdOQzB1TXkwMkxqRXhMUzQyTVMwNUxqSXhMUzQ1TW13dE5DNDJOaTB1TkRrdE5DNDNMUzR5TldNdE15NHhOQzB1TVRZdE5pNHlPUzB1TkRVdE9TNDBOUzB1TlRJdE5pNHpNaTB1TVRRdE1USXVOalF0TGpNdE1UZ3VPRGd0TGpFeExUWXVNalFzTUMweE1pNHpPQzQwT1MweE9DNHpOaTQzTlMwMUxqazJMalE0TFRFeExqYzJMamcxTFRFM0xqSTFMREV1TkRndE5TNDFNaTQwTlMweE1DNDNNaXd4TGpJdE1UVXVOVGdzTVM0Mk5TMDBMamd4TGpjMExUa3VNeXd4TGpFNExURXpMakkyTERFdU56SXRNeTQ1TkM0Mk1pMDNMalEyTGprekxURXdMak15TERFdU16UXROUzQzTkM0M09TMDVMakV4TERFdU1EVXRPUzR4TVN3eExqQTFMREFzTUN3eUxqZzVMVEV1Tnl3NExqRXROQzR6TlN3MUxqSXpMVEl1Tml3eE1pNDRNaTAyTGpBNUxESXlMakk1TFRrdU5EVXNOQzQzTnkweExqVTFMRGt1T1MwekxqUTFMREUxTGpVeUxUUXVPREVzTlM0MU55MHhMalUxTERFeExqVTFMVEl1Tnpnc01UY3VOemt0TXk0NU1Td3pMakV4TFM0Mk1TdzJMak15TFM0NU1TdzVMalUyTFRFdU16VXNNUzQyTWkwdU1pd3pMakkxTFM0ME1TdzBMamc1TFM0Mk1pd3hMalkxTFM0eE1Td3pMak14TFM0eU1TdzBMamszTFM0ek1pdzJMalkyTFM0MkxERXpMalEyTFM0ME9Dd3lNQzR5TmkwdU5ERXNNeTQwTGpFekxEWXVOemd1TkRnc01UQXVNVFl1TnpFc015NHpPUzR4Tnl3MkxqY3pMalkyTERFd0xqQXpMREV1TWl3ekxqTXhMalV4TERZdU5Ua3VPVGNzT1M0NExERXVOak1zTXk0eE9TNDNOU3cyTGpNMExERXVOU3c1TGpRMExESXVNak1zTmk0eUxERXVNemtzTVRFdU9UWXNNeTQyTml3eE55NDBOeXcxTGpReUxEVXVORElzTWk0d09Dd3hNQzQwTVN3MExqUXNNVFV1TURFc05pNDBNeXcwTGpVMkxESXVNallzT0M0Mk1TdzBMalU0TERFeUxqRTNMRFl1TlRnc015NDJOQ3d4TGpnNExEWXVNellzTkM0eE1pdzRMamd4TERVdU56RXNOQzQzT0N3ekxqTXlMRGN1TkRNc05TNHpPU3czTGpRekxEVXVNemxhSWk4K0Nnb2dJQ0FnSUNBOEwyYytDaUFnSUNBOEwzTjJaejQ9IiB4PSIxMCIgeT0iNDUiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjEiIHRyYW5zZm9ybT0icm90YXRlKC00NSA2MCA2MCkiIG9wYWNpdHk9IjAuMDciLz4KPC9zdmc+");
+            background-repeat: repeat;
+            background-size: 4vw 4vw;
+            background-color: #f9f9f9;
+        }
+        .itinerary-header { text-align: center; margin-bottom: 15px; }
+        .itinerary-header h1 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 400; }
+        .itinerary-header h2 { margin: 2px 0; font-size: 17px; text-transform: uppercase; letter-spacing: 0.5px; color: #2b4c5e; font-weight: 700; }
+        .itinerary-header h3 { margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; }
+        .color-bar { display: flex; width: 130px; height: 3px; margin: 0 auto; }
+        .total-time-box { background: rgba(255, 255, 255, 0.95); border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; margin-top: 12px; text-align: center; }
+        .total-time-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700; }
+        .total-time-val { font-size: 19px; font-weight: 800; color: #1e293b; margin: 2px 0 6px 0; }
+        .combined-sum-row { font-size: 10.5px; font-weight: 600; color: #334155; border-top: 1px dashed #cbd5e1; padding-top: 5px; }
+        .combined-sum-row b { color: #00a4c5; font-weight: 800; }
+        .efficiency-note { margin-top: 5px; font-size: 7.5px; color: #94a3b8; font-weight: 500; letter-spacing: 0.2px; }
+        .efficiency-note .eff-tag { font-weight: 700; color: #94a3b8; }
+        .kpi-container { display: flex; gap: 4px; margin-bottom: 15px; justify-content: center; }
+        .kpi-box { flex: 1; max-width: 90px; background: rgba(255, 255, 255, 0.9); padding: 5px 2px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0; }
+        .kpi-label { font-size: 7px; font-weight: bold; color: #64748b; text-transform: uppercase; white-space: nowrap; letter-spacing: 0.2px; }
+        .kpi-val { font-size: 10px; font-weight: 700; color: #1e293b; margin-top: 1px; }
+        .timeline-axis { position: relative; padding: 5px 0; margin-top: 10px; }
+        .timeline-axis::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: #cbd5e1; transform: translateX(-50%); }
+        .timeline-transit-badge { position: relative; text-align: center; margin: 4px 0; z-index: 2; line-height: 1; }
+        .transit-text { display: inline-block; background: #fffdf5; border: 1px dashed #f2a900; color: #b47e00; font-size: 8.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 6px rgba(242,169,0,0.216), 0 1px 2px rgba(0,0,0,0.072); }
+        .timeline-block { position: relative; margin-bottom: 6px; width: 100%; display: flex; }
+        .timeline-block-left { justify-content: flex-start; padding-left: 6%; }
+        .timeline-block-right { justify-content: flex-end; padding-right: 6%; }
+        .block-card { width: 42%; background: rgba(255, 255, 255, 0.93); padding: 6px 8px; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.084); position: relative; border: 1px solid #E8E9EB; border-top: 3px solid #2b4c5e; transition: border-color 0.2s; word-wrap: break-word; }
+        .axis-pointer { position: absolute; left: 50%; top: 10px; width: 10px; height: 10px; background: #2b4c5e; border-radius: 50%; border: 2px solid #fff; transform: translateX(-50%); z-index: 3; box-shadow: 0 0 0 1px #cbd5e1; }
+        .card-arrow { position: absolute; top: 7px; font-size: 13px; color: #cbd5e1; font-weight: bold; }
+        .timeline-block-left .card-arrow { right: -11px; }
+        .timeline-block-right .card-arrow { left: -11px; }
+        .card-time { font-size: 12px; font-weight: 700; color: #1e293b; line-height: 1.1; }
+        .card-title { font-weight: 700; text-transform: uppercase; font-size: 10px; margin: 2px 0; color: #2b4c5e; line-height: 1.3; overflow: visible; white-space: normal; }
+        .card-desc { margin: 2px 0 0 0; font-size: 9px; line-height: 1.2; color: #64748b; }
+        .summary-separator { border: 0; border-top: 1px solid #cbd5e1; margin: 20px 10px 10px 10px; }
+        .summary-horizontal-container { display: flex; justify-content: space-around; align-items: center; padding: 5px 0; margin-top: 5px; }
+        .summary-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 600; color: #475569; text-transform: uppercase; }
+        .summary-circle { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+        /* Media Queries Adaptativos Compartidos */
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; }
+            .control-panel { max-height: none; }
+            .preview-panel { padding: 5px; }
+        }
+        @media (max-width: 600px) {
+            .itinerary-body { padding: 5px; }
+            .itinerary-card { padding: 15px 10px; min-height: auto; }
+            .timeline-axis::before { left: 15px; transform: none; }
+            .timeline-block { justify-content: flex-end; padding-left: 0; padding-right: 0; }
+            .block-card { width: 88%; }
+            .axis-pointer { left: 15px; transform: none; }
+            .timeline-block-left .card-arrow, .timeline-block-right .card-arrow { left: -11px; right: auto; transform: rotate(180deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+       PANTALLA 1: ITINERARIO LOGÍSTICO AVANZADO
+       ========================================== -->
+    <div id="screen-itinerary" class="itinerary-body">
+        
+        <!-- Datalists Originales del Itinerario -->
+        <datalist id="origen-options">
+            <option value="Agustiniano"><option value="Cardenal Karol Józef Wojtyla"><option value="Cardenal Sancha"><option value="Celina Pellier"><option value="Charles Murton"><option value="Colegio Cristiano De La Vega"><option value="Cuerpo de Cristo"><option value="Divino Niño"><option value="Don Bosco"><option value="Don Luis Despradel"><option value="Dr. Frank Díaz Dominguez"><option value="El Caimito"><option value="El Eden"><option value="Eladio Peña de la Rosa"><option value="Eugenio María de Hostos"><option value="Francisco Diógenes Díaz"><option value="Fuente de Salvacion"><option value="Guardería rayos de sol"><option value="Infantil Los Amiguitos (CEILA)"><option value="Inmaculada Concepción"><option value="Isabel La Catolica"><option value="Jambraoa Tours"><option value="Jardin Infantil Mamina"><option value="José Francisco De Jesus Duarte"><option value="Juan Luis Despradel"><option value="Juan Pablo Duarte"><option value="Juan Pablo II"><option value="La Nueva Esperanza (COLANE)"><option value="La Sagrada Familia"><option value="Los Pekes"><option value="Los Pininos"><option value="Luis Napoleón Nuñez Molina"><option value="Luis Ramón Bencosme"><option value="Madre Mazzarello"><option value="Maria Auxiliadora Barahona"><option value="Maria Auxiliadora Moca"><option value="Maximo Gomez"><option value="Milady Maria Bencosme"><option value="Monseñor Panal"><option value="Nuestra Señora del Carmen"><option value="Nueva Esperanza"><option value="Nuevo Renacer"><option value="Nuveluz"><option value="Oasis Christian School"><option value="Onésimo Polanco"><option value="Padre Fantino"><option value="Pequeños Gigantes"><option value="Porfirio Morales"><option value="Primavera"><option value="Prof: Sixta Ramona Paulino Fernández"><option value="Quisqueya"><option value="Rayo de Luz"><option value="Sagrado Corazón de Jesús"><option value="Salesiana San Jose"><option value="Salome Ureña"><option value="Salome Ureña (Salcedo)"><option value="Salvador Álvarez"><option value="San Antonio de Padua"><option value="San Francisco"><option value="Sedesic"><option value="Sixta Ramona Paulino"><option value="Sor Juana Inés de la Cruz"><option value="Utesiano (Cuei)">
+        </datalist>
+
+        <datalist id="paradas-options">
+            <option value="Acuario Nacional"><option value="Aeropuerto del Cibao"><option value="Alcazar a Diego Colón"><option value="Altar de la Patria"><option value="Altos de Chavón"><option value="Altos de Chavón E"><option value="Aquamundo"><option value="Arawakos"><option value="Arroyo Salado"><option value="Bahia de las Aguilas"><option value="Balneario San Rafael"><option value="Bariló / NA"><option value="Basílica de Higuey"><option value="Boca de Cachon"><option value="Café Colao"><option value="Café Monte Alto"><option value="Cachon Mamei"><option value="Calle 3D"><option value="Caño Frío"><option value="Campo Aventura"><option value="Casa Materna de las Hermanas Mirabal"><option value="Cascada Aguas Blancas"><option value="Cascada los Monjes"><option value="Castillo del Cerro"><option value="Catedral de la Vega"><option value="Catedral Primada de América"><option value="Cayo Levantado"><option value="Centro Cultural Perelló"><option value="Centro de la Cultura"><option value="Centro de Interpretación de la Sal"><option value="Centro de Operaciones de Emergencia (COE)"><option value="Centro Leon"><option value="Club Náutico"><option value="Cola de Pato"><option value="Congreso Nacional"><option value="Coroar Villas Zip Line"><option value="Cueva Boulevard Del Atlántico"><option value="Cueva de las Maravillas"><option value="Cueva de las Maravillas E"><option value="Cuevas de Pomier"><option value="Divino Niño"><option value="Dulcería Lolin"><option value="Eco Parque de la Paz"><option value="El Mirador de las Terrenas"><option value="El Morro"><option value="El Saltadero"><option value="El sendero de las Cruces"><option value="Estadio de las Aguilas Cibaeñas"><option value="Fabrica de Nestle"><option value="Fábrica de Galletas de Grupo Bocel"><option value="Faro a Colón"><option value="Feria del Libro"><option value="Fortaleza Ozama"><option value="Fortaleza San Felipe"><option value="Fortaleza San Luis"><option value="Fricolandia"><option value="Fuerza Aérea Dominicana"><option value="Fun City"><option value="Galería 360"><option value="Gran Teatro del Cibao"><option value="Grand Grossier"><option value="Helados Ivon"><option value="Hoyo de Felipe"><option value="Iglesia Corazón de Jesus"><option value="Iglesia de San Fernando"><option value="Iglesia La Isabela Nuevo Mundo"><option value="Iglesia Nuestra Señora de la Consolación"><option value="Isla Catalina"><option value="Isla La Cabra"><option value="Isla Saona"><option value="JD GRANJA MOCA"><option value="Jardín Botánico"><option value="Jardín Botánico Nacional"><option value="La Calle de las Chichiguas"><option value="La Calle de las Sombrillas"><option value="La Calle Rosada"><option value="La Churcha"><option value="La Confluencia"><option value="La Frontera Dajabón"><option value="La Frontera Jimaní"><option value="La Frontera Pedernales"><option value="La Fuente"><option value="La Laguna de Oviedo"><option value="La Plataforma"><option value="La Toma"><option value="La Zurza"><option value="Lago Enriquillo"><option value="Laguna Azul"><option value="Laguna Cristal"><option value="Laguna Dudú"><option value="Laguna Gri-Gri"><option value="Laser Runer"><option value="Las Barias"><option value="Las Caritas"><option value="Las Dunas de Baní"><option value="Las Marias"><option value="Las Salinas de Baní"><option value="Letrero Constanza"><option value="Los Bomberos"><option value="Los Haitises"><option value="Los Patos"><option value="Los Puentes"><option value="Los Tres Ojos"><option value="Magialandia"><option value="Malecón"><option value="Metro de Santo Domingo"><option value="Montaña Redonda"><option value="Monumento a los Constituyetes"><option value="Monumento a los Héroes de la Restauración"><option value="Monumento Fray Luis Montesino"><option value="Muellecito"><option value="Museo Altos de Chavón"><option value="Museo Casa del Cordon"><option value="Museo Casa-Fuerte Juan Ponce de León"><option value="Museo de Duarte"><option value="Museo de Historia Natural"><option value="Museo de Historia y Geografía"><option value="Museo de la Ballena"><option value="Museo de la Familia Casa del Tostado"><option value="Museo de la Resistencia"><option value="Museo de la Restauración de Capotillo"><option value="Museo de las Atarazanas Reales -MAR"><option value="Museo de las Casas Reales"><option value="Museo de las Hermanas Mirabal"><option value="Museo de las Telecomunicaciones"><option value="Museo del Ambar"><option value="Museo del Ambar SD"><option value="Museo del Carnaval Vegano"><option value="Museo del Chocolate"><option value="Museo del Hombre Dominicano"><option value="Museo del Larimar"><option value="Museo del Pelotero Petromacorisano"><option value="Museo del Ron"><option value="Museo Filatélico y Numismático - Banco Cetral"><option value="Museo Gregorio Luperón"><option value="Museo Infantil Trampolín"><option value="Museo Máximo Gómez"><option value="Museo Ramón Cáceres"><option value="Museo Taino"><option value="Ocean World Park & Marina"><option value="Palacio Nacional"><option value="Palafitos - Grano de Café"><option value="Plazoleta 26 de Julio"><option value="Plazoleta España"><option value="Panteón Nacional"><option value="Parada El Tunel"><option value="Parada Cruce de Ocoa"><option value="Parada La Mocana"><option value="Parada Taveras"><option value="Parque Brache Batista"><option value="Parque Central"><option value="Parque de Cambolla"><option value="Parque de Educación Vial"><option value="Parque de la Mujer"><option value="Parque del Reloj"><option value="Parque Eólico Los Cocos"><option value="Parque Galleticas"><option value="Parque Iberoamérica"><option value="Parque Independencia"><option value="Parque Infantil Palmarito"><option value="Parque las Canquiñas"><option value="Parque Lineal Gurabo"><option value="Parque Nacional Armando Bermúdez"><option value="Parque Nacional Jaragua"><option value="Parque Nacional Valle Nuevo"><option value="Parque Piedras Vivas"><option value="Parqueo Zona Colonial"><option value="Paseo Doña Blanca"><option value="Pekepolis / NA"><option value="Pico Duarte"><option value="Pico El Mogote"><option value="Piscina natural"><option value="Piscina Natural"><option value="Playa Arroyo Salado"><option value="Playa Caleton"><option value="Playa El Pontón"><option value="Playa Fronton"><option value="Playa Grande"><option value="Playa Las Terrenas"><option value="Playa los quemaitos"><option value="Playa Madama"><option value="Playa Rogelio"><option value="Plaza Internacional"><option value="Plaza Sambil"><option value="Poli Deportivo de Licey"><option value="Polo Magnético"><option value="Pozos Cabo Cabrón"><option value="Pozos de Romeo"><option value="Presa de Jiguey"><option value="Presa Hidroeléctrica Taveras"><option value="Pueblo Príncipe"><option value="Puerta del Conde"><option value="Puerto Marítimo de Luperón"><option value="Rancho Cumayasa"><option value="Reserva Cientifica Ebano Verde"><option value="Reserva Científica Loma Quita Espuela"><option value="Rihelandia"><option value="Rio Jamao"><option value="Rio Partido"><option value="Ruinas de la Vega Vieja"><option value="Ruinas de La Isabela"><option value="Ruinas del Ingenio de Nigua"><option value="Ruinas de San Francisco"><option value="Salto Alto"><option value="Salto Baiguate"><option value="Salto El Limón"><option value="Salto Jimenoa"><option value="Salto Socoa"><option value="Saltos de Jima"><option value="Santo Cerro"><option value="Santuario Getsemani"><option value="Santuario San Martín de Porres"><option value="Screamland"><option value="Sendero del Cacao"><option value="Summit Trampoline Park"><option value="Teleférico"><option value="Templo de las Américas"><option value="Templo del Deporte Vegano"><option value="Terminal Turística Amber Cove"><option value="Torre del Reloj"><option value="Zoológico de Gurabo / NA"><option value="Zoológico Moca / NA"><option value="Zoológico Nacional">
+        </datalist>
+
+        <div class="main-container">
+            <!-- Panel de Control Izquierdo -->
+            <div class="control-panel">
+                <h3 class="panel-title">Información general</h3>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <div style="flex: 1.1;">
+                        <label>Título General</label>
+                        <input type="text" id="inp-main-title" class="form-control" value="Itinerario">
+                    </div>
+                    <div style="flex: 1.3;">
+                        <label>Punto Origen</label>
+                        <input type="text" id="inp-origin-name" class="form-control" list="origen-options" value="Maria Auxiliadora Moca">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ruta / Trayecto</label>
+                    <input type="text" id="inp-route" class="form-control" value="Moca - Santo Domingo">
+                </div>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <div style="flex: 1.2;">
+                        <label>Seleccionar Fecha</label>
+                        <input type="date" id="inp-date-picker" class="form-control" value="2026-06-22">
+                    </div>
+                    <div style="flex: 0.8;">
+                        <label>Salida Inicial</label>
+                        <input type="time" id="start-time" class="form-control" value="06:00">
+                    </div>
+                </div>
+
+                <div class="selector-header-box">
+                    <div style="font-size:10px; text-transform:uppercase; color:#475569; margin-bottom:5px;">Elegir Cantidad de Paradas:</div>
+                    <div style="display:flex; gap:8px;">
+                        <div style="flex:1;">
+                            <label style="font-size:9px;">Lugares Interés</label>
+                            <select id="interest-count" class="form-control"></select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:9px;">Paradas Técnicas</label>
+                            <select id="tech-count" class="form-control"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size: 11px; font-weight: bold; color: #2b4c5e; margin: 10px 0 5px 0; text-transform: uppercase;">lugares y paradas:</div>
+                <div id="stops-list-container" class="stops-list"></div>
+
+                <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 12px;">
+                    <label id="lbl-return-transit">Traslado de regreso (min)</label>
+                    <input type="number" id="return-transit" class="form-control" value="85" min="0">
+                </div>
+
+                <div class="export-actions">
+                    <button type="button" class="btn-global btn-jpg" data-action="export" data-export="jpg">🖼️ Exportar JPG</button>
+                    <button type="button" class="btn-global btn-html" data-action="export" data-export="html">💾 Guardar HTML</button>
+                </div>
+            </div>
+
+            <!-- Panel de Vista Previa Derecho -->
+            <div class="preview-panel">
+                <div class="itinerary-card" id="capture-target">
+                    <div class="itinerary-header">
+                        <h1 id="view-main-title">Itinerario</h1>
+                        <h2 id="view-route">Moca - Santo Domingo</h2>
+                        <h3 id="view-date">lunes 22 de junio de 2026</h3>
+                        <div class="color-bar">
+                            <div style="flex:1; background-color: #cbd5e1;"></div>
+                            <div style="flex:1; background-color: #2b4c5e;"></div>
+                            <div style="flex:1; background-color: #f2a900;"></div>
+                            <div style="flex:1; background-color: #e93d5a;"></div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-container">
+                        <div class="kpi-box" style="border-left: 2px solid #2b4c5e;">
+                            <div class="kpi-label">Salida</div>
+                            <div class="kpi-val" id="kpi-start">07:00 AM</div>
+                        </div>
+                        <div class="kpi-box" style="border-left: 2px solid #00a4c5;">
+                            <div class="kpi-label">Lugares</div>
+                            <div class="kpi-val" id="kpi-interest-val">0</div>
+                        </div>
+                        <div class="kpi-box" style="border-left: 2px solid #f05a70;">
+                            <div class="kpi-label">Paradas</div>
+                            <div class="kpi-val" id="kpi-tech-val">0</div>
+                        </div>
+                        <div class="kpi-box" style="border-left: 2px solid #e93d5a;">
+                            <div class="kpi-label">Retorno Fin</div>
+                            <div class="kpi-val" id="kpi-end">--:--</div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-axis">
+                        <div class="timeline-block timeline-block-left">
+                            <div class="axis-pointer" style="background: #555;"></div>
+                            <div class="block-card" style="border-top-color: #555; background: rgba(250,250,250,0.93);">
+                                <div class="card-arrow">&raquo;</div>
+                                <div class="card-time" id="time-origin">07:00 AM</div>
+                                <div class="card-title" id="title-origin-node" style="color:#555;">📍 Salida</div>
+                                <p class="card-desc">Inicio de ruta logística.</p>
+                            </div>
+                        </div>
+                        <div id="timeline-dynamic-flow"></div>
+                        <div id="timeline-final-node"></div>
+                    </div>
+
+                    <hr class="summary-separator">
+                    <div class="summary-horizontal-container">
+                        <div class="summary-item">
+                            <span class="summary-circle" style="background-color: #2b4c5e;"></span>
+                            Traslado: <span id="sum-transit">0 min</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-circle" style="background-color: #00a4c5;"></span>
+                            Lugares: <span id="sum-interest">0 min</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-circle" style="background-color: #f05a70;"></span>
+                            Paradas: <span id="sum-tech">0 min</span>
+                        </div>
+                    </div>
+
+                    <div class="total-time-box">
+                        <div class="total-time-label">⏱️ Tiempo Total de la Excursión</div>
+                        <div class="total-time-val" id="kpi-total-excursion">0h 0min</div>
+                        <div class="combined-sum-row">Lugares + Paradas: <b id="sum-combined">0 min</b></div>
+                        <div class="efficiency-note" id="efficiency-note">Traslado vs. Actividades: <span class="eff-tag" id="efficiency-tag">—</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+       LÓGICA JAVASCRIPT DEL ITINERARIO
+       ========================================== -->
+    <script type="application/json" id="saved-state"></script>
+    <script>
+        /* --- LÓGICA GENERAL: ITINERARIO --- */
+        const selInt = document.getElementById('interest-count');
+        const selTech = document.getElementById('tech-count');
+        for(let i=0; i<=10; i++) {
+            selInt.options[selInt.options.length] = new Option(`${i} Lugares`, i);
+            selTech.options[selTech.options.length] = new Option(`${i} Paradas`, i);
+        }
+        selInt.value = 2;
+        selTech.value = 3;
+
+        const availableEmojis = ['📍', '⭐', '🎟️','🚌', '🚋', '🚈', '🚞', '🚠','🏨', '⛽', '🚽','🍽️', '🍔', '🍗', '🍕', '☕', '🥐', '🍓', '🍫','🏛️', '🗽', '🎠', '🎪', '🛝', '📸','🏖️', '🏝️', '🏔️', '🏜️', '⛺', '⛵','🌳', '🌲', '🌿', '🍀', '☀️','🦁', '🐯', '🐒', '🦓', '🐓', '🦇','🦎','🐟', '🐠', '🦈', '🦑', '🦀', '🐚','👙'];
+
+        let currentRouteSchema = [
+
+            { type: 'tech', name: 'Parada Taveras', transit: 85, stay: 25, desc: 'Uso de sanitarios y cafetería.', color: '#169400', emojis: [] },
+
+            { type: 'interest', name: 'Museo de Historia Natural', transit: 80, stay: 120, desc: 'Presentación.', color: '#00a4c5', emojis: [] },
+{ type: 'tech', name: 'Dominos Pizza', transit: 25, stay: 45, desc: 'Almuerzo.', color: '#f05a70', emojis: [] },
+
+                        { type: 'interest', name: 'Zoológico Nacional', transit: 20, stay: 120, desc: 'Recorrido.', color: '#00a4c5', emojis: [] },
+                        { type: 'tech', name: 'Parada La Mocana', transit: 60, stay: 25, desc: 'Uso de sanitarios y cafetería.', color: '#169400', emojis: [] },
+
+        ];
+
+        function updateDateFromPicker() {
+            const pickerVal = document.getElementById('inp-date-picker').value;
+            if(!pickerVal) return;
+            const dateObj = new Date(pickerVal + 'T00:00:00');
+            const opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('view-date').innerText = dateObj.toLocaleDateString('es-ES', opciones);
+        }
+
+        function formatDurationText(minutes) {
+            if (minutes < 60) return `${minutes} min`;
+            const hrs = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return mins > 0 ? `${hrs} h y ${mins} min` : `${hrs} h`;
+        }
+
+        function adjustQuantities() {
+            const targetInt = parseInt(selInt.value);
+            const targetTech = parseInt(selTech.value);
+            let currentInts = currentRouteSchema.filter(x => x.type === 'interest');
+            let currentTechs = currentRouteSchema.filter(x => x.type === 'tech');
+
+            if (currentInts.length < targetInt) {
+                for(let i = currentInts.length; i < targetInt; i++) {
+                    currentInts.push({ type: 'interest', name: `Lugar de Interés ${i+1}`, transit: 30, stay: 60, desc: 'Detalles...', color: '#00a4c5', emojis: ['⭐'] });
+                }
+            } else { currentInts = currentInts.slice(0, targetInt); }
+
+            if (currentTechs.length < targetTech) {
+                for(let i = currentTechs.length; i < targetTech; i++) {
+                    currentTechs.push({ type: 'tech', name: `Parada ${i+1}`, transit: 15, stay: 15, desc: 'Detalles técnicos.', color: '#f05a70', emojis: ['⛽'] });
+                }
+            } else { currentTechs = currentTechs.slice(0, targetTech); }
+
+            currentRouteSchema = [];
+            let maxLen = Math.max(currentInts.length, currentTechs.length);
+            for(let i=0; i<maxLen; i++) {
+                if(currentInts[i]) currentRouteSchema.push(currentInts[i]);
+                if(currentTechs[i]) currentRouteSchema.push(currentTechs[i]);
+            }
+            renderControlInputs();
+            updateAll();
+        }
+
+        function toggleEmojiDropdown(idx) {
+            const drop = document.getElementById(`emoji-drop-${idx}`);
+            if (drop) drop.style.display = drop.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function toggleEmojiSelection(stopIdx, emoji) {
+            let selectedEmojis = currentRouteSchema[stopIdx].emojis || [];
+            if(selectedEmojis.includes(emoji)) {
+                selectedEmojis = selectedEmojis.filter(e => e !== emoji);
+            } else { selectedEmojis.push(emoji); }
+            currentRouteSchema[stopIdx].emojis = selectedEmojis;
+            document.getElementById(`emoji-trigger-text-${stopIdx}`).innerText = selectedEmojis.length > 0 ? selectedEmojis.join(' ') : 'Ninguno seleccionado';
+            
+            const options = document.querySelectorAll(`#emoji-drop-${stopIdx} .emoji-option`);
+            options.forEach(opt => {
+                if(opt.getAttribute('data-emoji') === emoji) opt.classList.toggle('selected');
+            });
+            updateAll();
+        }
+
+        function handleControlInput(event) {
+            const target = event.target;
+            if (target.matches('[data-action="update-stop"]')) {
+                const index = parseInt(target.dataset.index, 10);
+                const field = target.dataset.field;
+                if (Number.isInteger(index) && currentRouteSchema[index]) {
+                    const rawValue = target.value;
+                    currentRouteSchema[index][field] = (field === 'transit' || field === 'stay') ? (parseInt(rawValue) || 0) : rawValue;
+                    if (field === 'color') {
+                        const card = target.closest('.stop-item-card');
+                        if (card) { card.style.borderLeftColor = rawValue; card.style.borderRightColor = rawValue; }
+                    }
+                    updateAll();
+                }
+                return;
+            }
+
+            if (['inp-main-title', 'inp-origin-name', 'inp-route', 'inp-date-picker', 'start-time', 'return-transit'].includes(target.id)) {
+                updateAll();
+            }
+        }
+
+        function handleControlChange(event) {
+            const target = event.target;
+            if (target.id === 'interest-count' || target.id === 'tech-count') {
+                adjustQuantities();
+                return;
+            }
+
+            if (['inp-main-title', 'inp-origin-name', 'inp-route', 'inp-date-picker', 'start-time', 'return-transit'].includes(target.id)) {
+                updateAll();
+            }
+        }
+
+        function handleControlClick(event) {
+            const trigger = event.target.closest('[data-action]');
+            if (!trigger) return;
+
+            const action = trigger.dataset.action;
+            if (action === 'move-item') {
+                moveItem(parseInt(trigger.dataset.index, 10), trigger.dataset.direction);
+                return;
+            }
+
+            if (action === 'toggle-emoji') {
+                toggleEmojiDropdown(parseInt(trigger.dataset.index, 10));
+                return;
+            }
+
+            if (action === 'select-emoji') {
+                toggleEmojiSelection(parseInt(trigger.dataset.index, 10), trigger.dataset.emoji);
+                return;
+            }
+
+            if (action === 'export') {
+                if (trigger.dataset.export === 'jpg') exportToJPG_HQ();
+                if (trigger.dataset.export === 'html') saveToHTML();
+            }
+        }
+
+        function moveItem(index, direction) {
+            if (direction === 'up' && index > 0) {
+                [currentRouteSchema[index], currentRouteSchema[index - 1]] = [currentRouteSchema[index - 1], currentRouteSchema[index]];
+            } else if (direction === 'down' && index < currentRouteSchema.length - 1) {
+                [currentRouteSchema[index], currentRouteSchema[index + 1]] = [currentRouteSchema[index + 1], currentRouteSchema[index]];
+            }
+            renderControlInputs();
+            updateAll();
+        }
+
+        function saveInputValue(index, field, value) {
+            currentRouteSchema[index][field] = (field === 'transit' || field === 'stay') ? (parseInt(value) || 0) : value;
+            updateAll();
+        }
+
+        function renderControlInputs() {
+            const container = document.getElementById('stops-list-container');
+            container.innerHTML = '';
+            currentRouteSchema.forEach((stop, idx) => {
+                const cardClass = stop.type === 'tech' ? 'tech-type' : 'interest-type';
+                const labelTitle = stop.type === 'tech' ? '🛑 Parada' : '🌟 Lugar de Interés';
+                const currentEmojis = stop.emojis || [];
+                let emojiHTMLOptions = '';
+                availableEmojis.forEach(em => {
+                    const isSelected = currentEmojis.includes(em) ? 'selected' : '';
+                    emojiHTMLOptions += `<span class="emoji-option ${isSelected}" data-action="select-emoji" data-index="${idx}" data-emoji="${em}">${em}</span>`;
+                });
+
+                container.innerHTML += `
+                    <div class="stop-item-card ${cardClass}" style="border-left-color: ${stop.color || '#2b4c5e'}; border-right-color: ${stop.color || '#2b4c5e'};">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+                            <span style="font-size:11px; font-weight:bold; white-space:nowrap;">${idx + 1}. ${labelTitle}</span>
+                            <input type="text" class="form-control" list="paradas-options" value="${stop.name}" style="flex:1;" data-action="update-stop" data-index="${idx}" data-field="name">
+                            <div class="order-actions" style="align-items:center; display:flex; gap:5px; margin-top:0;">
+                                <label style="font-size:9px; font-weight:bold; margin:0; text-transform:none; white-space:nowrap;">Color:</label>
+                                <input type="color" value="${stop.color || '#2b4c5e'}" style="width:22px; height:18px; border:none; padding:0; cursor:pointer;" data-action="update-stop" data-index="${idx}" data-field="color">
+                                <button class="btn-order" type="button" data-action="move-item" data-index="${idx}" data-direction="up">▲</button>
+                                <button class="btn-order" type="button" data-action="move-item" data-index="${idx}" data-direction="down">▼</button>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:6px; margin-bottom:4px;">
+                            <div style="flex:1;">
+                                <label style="font-size:9px;">Iconos del Lugar</label>
+                                <div class="emoji-picker-container" style="margin-bottom:0;">
+                                    <button class="emoji-trigger-btn" type="button" data-action="toggle-emoji" data-index="${idx}">
+                                        <span id="emoji-trigger-text-${idx}">${currentEmojis.length > 0 ? currentEmojis.join(' ') : 'Ninguno seleccionado'}</span> ▼
+                                    </button>
+                                    <div class="emoji-dropdown" id="emoji-drop-${idx}">${emojiHTMLOptions}</div>
+                                </div>
+                            </div>
+                            <div style="flex:1;"><label style="font-size:9px;">Traslado</label><input type="number" class="form-control" value="${stop.transit}" data-action="update-stop" data-index="${idx}" data-field="transit"></div>
+                            <div style="flex:1;"><label style="font-size:9px;">Estancia</label><input type="number" class="form-control" value="${stop.stay}" data-action="update-stop" data-index="${idx}" data-field="stay"></div>
+                        </div>
+                        <input type="text" class="form-control" value="${stop.desc}" style="font-size:11px; padding:3px;" data-action="update-stop" data-index="${idx}" data-field="desc">
+                    </div>`;
+            });
+        }
+
+        function formatTimeStr(totalMin) {
+            let hours = Math.floor(totalMin / 60) % 24;
+            let mins = Math.floor(totalMin % 60);
+            let ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12; hours = hours ? hours : 12;
+            return `${hours}:${mins < 10 ? '0' + mins : mins} ${ampm}`;
+        }
+
+        function updateAll() {
+            document.getElementById('view-main-title').innerText = document.getElementById('inp-main-title').value;
+            document.getElementById('view-route').innerText = document.getElementById('inp-route').value;
+            updateDateFromPicker();
+
+            const startTimeValue = document.getElementById('start-time').value || '00:00';
+            const parts = startTimeValue.split(':');
+            let currentMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            const returnTransit = parseInt(document.getElementById('return-transit').value) || 0;
+            const originName = document.getElementById('inp-origin-name').value || "Origen";
+
+            document.getElementById('lbl-return-transit').innerText = `Traslado de regreso a: ${originName} (min)`;
+            document.getElementById('kpi-start').innerText = formatTimeStr(currentMinutes);
+            document.getElementById('time-origin').innerText = formatTimeStr(currentMinutes);
+            document.getElementById('title-origin-node').innerText = `📍 Salida de ${originName}`;
+
+            let interestCount = 0, techCount = 0, dynamicHTML = '';
+            let totalTransitMinutes = 0, totalInterestMinutes = 0, totalTechMinutes = 0;
+
+            currentRouteSchema.forEach((node, idx) => {
+                if (node.type === 'interest') interestCount++;
+                if (node.type === 'tech') techCount++;
+                if (node.transit > 0) {
+                    dynamicHTML += `<div class="timeline-transit-badge"><span class="transit-text">↓ Traslado: ${formatDurationText(node.transit)}</span></div>`;
+                    currentMinutes += node.transit; totalTransitMinutes += node.transit;
+                }
+                const sideClass = (idx % 2 === 0) ? 'timeline-block-right' : 'timeline-block-left';
+                const arrowIcon = (idx % 2 === 0) ? '&laquo;' : '&raquo;';
+                let customColor = node.color || '#2b4c5e';
+                let iconsString = node.emojis && node.emojis.length > 0 ? node.emojis.join(' ') + ' ' : '';
+                let arrivalTime = currentMinutes;
+                let departureTime = arrivalTime + node.stay;
+                currentMinutes = departureTime;
+
+                if (node.type === 'interest') totalInterestMinutes += node.stay;
+                else if (node.type === 'tech') totalTechMinutes += node.stay;
+
+                dynamicHTML += `
+                    <div class="timeline-block ${sideClass}">
+                        <div class="axis-pointer" style="background-color: ${customColor};"></div>
+                        <div class="block-card" style="border-top-color: ${customColor};">
+                            <div class="card-arrow" style="color: ${customColor};">${arrowIcon}</div>
+                            <div class="card-time">${formatTimeStr(arrivalTime)}</div>
+                            <div class="card-title" style="color: ${customColor};">${iconsString}${node.name}</div>
+                            <div style="font-size:9px; font-weight:600; color:#64748b;">Estancia: ${formatDurationText(node.stay)} · Hasta las: ${formatTimeStr(departureTime)}</div>
+                            ${node.desc ? `<p class="card-desc">${node.desc}</p>` : ''}
+                        </div>
+                    </div>`;
+            });
+
+            document.getElementById('kpi-interest-val').innerText = interestCount;
+            document.getElementById('kpi-tech-val').innerText = techCount;
+            document.getElementById('timeline-dynamic-flow').innerHTML = dynamicHTML;
+
+            if (returnTransit > 0) {
+                document.getElementById('timeline-dynamic-flow').innerHTML += `<div class="timeline-transit-badge"><span class="transit-text">↓ Retorno a ${originName} (${formatDurationText(returnTransit)})</span></div>`;
+                currentMinutes += returnTransit; totalTransitMinutes += returnTransit;
+            }
+            const sideClassFinal = (currentRouteSchema.length % 2 === 0) ? 'timeline-block-right' : 'timeline-block-left';
+            document.getElementById('timeline-final-node').innerHTML = `
+                <div class="timeline-block ${sideClassFinal}">
+                    <div class="axis-pointer" style="background:#555;"></div>
+                    <div class="block-card" style="border-top-color: #555; background: rgba(250,250,250,0.93);">
+                        <div class="card-arrow">&raquo;</div>
+                        <div class="card-time">${formatTimeStr(currentMinutes)}</div>
+                        <div class="card-title" style="color:#555;">🏁 Retorno a ${originName}</div>
+                    </div>
+                </div>`;
+
+            document.getElementById('kpi-end').innerText = formatTimeStr(currentMinutes);
+            document.getElementById('sum-transit').innerText = formatDurationText(totalTransitMinutes);
+            document.getElementById('sum-interest').innerText = formatDurationText(totalInterestMinutes);
+            document.getElementById('sum-tech').innerText = formatDurationText(totalTechMinutes);
+
+            // Tiempo total de la excursión (traslados + lugares + paradas)
+            const totalExcursionMinutes = totalTransitMinutes + totalInterestMinutes + totalTechMinutes;
+            document.getElementById('kpi-total-excursion').innerText = formatDurationText(totalExcursionMinutes);
+
+            // Quinta sumatoria: tiempo de lugares + tiempo de paradas
+            const combinedPlacesStops = totalInterestMinutes + totalTechMinutes;
+            document.getElementById('sum-combined').innerText = formatDurationText(combinedPlacesStops);
+
+            // ClasificaciÃ³n por porcentaje: LP = Lugares + Paradas, T = Traslado, LP + T = Tiempo Total
+            // % LP >= 55 -> Exitoso | 45-54.99 -> Aceptable | < 45 -> No compensa
+            let effLabel = 'â';
+            if (totalExcursionMinutes === 0) {
+                effLabel = 'â';
+            } else {
+                const lpPercent = (combinedPlacesStops / totalExcursionMinutes) * 100;
+                if (lpPercent >= 55) {
+                    effLabel = 'Exitoso';
+                } else if (lpPercent >= 45) {
+                    effLabel = 'Aceptable';
+                } else {
+                    effLabel = 'No compensa';
+                }
+            }
+            const effTagEl = document.getElementById('efficiency-tag');
+            effTagEl.innerText = effLabel;
+            const effColors = { 'Exitoso': '#16a34a', 'Aceptable': '#eab308', 'No compensa': '#dc2626' };
+            effTagEl.style.color = effColors[effLabel] || '#94a3b8';
+        }
+
+        function runExportWrapper(callback) {
+            const target = document.getElementById('capture-target');
+            const originalWidth = target.style.width;
+            target.style.width = '440px'; 
+            setTimeout(() => { callback(target, () => { target.style.width = originalWidth; }); }, 250);
+        }
+
+        function bytesToBase64(bytes) {
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+            }
+            return btoa(binary);
+        }
+
+        function setJpegDpi(dataURL, dpi) {
+            const base64 = dataURL.split(',')[1];
+            const binaryStr = atob(base64);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+            // Buscar el marcador APP0 JFIF (FF E0 .. 'JFIF\0') e insertar la densidad en PPP
+            for (let i = 0; i < bytes.length - 8; i++) {
+                if (bytes[i] === 0xFF && bytes[i + 1] === 0xE0 && bytes[i + 4] === 0x4A && bytes[i + 5] === 0x46 && bytes[i + 6] === 0x49 && bytes[i + 7] === 0x46) {
+                    const unitsIdx = i + 11;
+                    bytes[unitsIdx] = 1; // 1 = pulgadas (dots per inch)
+                    bytes[unitsIdx + 1] = (dpi >> 8) & 0xFF; bytes[unitsIdx + 2] = dpi & 0xFF; // Xdensity
+                    bytes[unitsIdx + 3] = (dpi >> 8) & 0xFF; bytes[unitsIdx + 4] = dpi & 0xFF; // Ydensity
+                    break;
+                }
+            }
+
+            return 'data:image/jpeg;base64,' + bytesToBase64(bytes);
+        }
+
+        function exportToJPG_HQ() {
+            const routeName = document.getElementById('inp-route').value || 'itinerario';
+            runExportWrapper((element, cleanUp) => {
+                html2canvas(element, { scale: 4, useCORS: true, backgroundColor: '#f9f9f9' }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `Itinerario_${routeName.replace(/\s+/g, '_')}.jpg`;
+                    link.href = setJpegDpi(canvas.toDataURL('image/jpeg', 0.97), 300); link.click(); cleanUp();
+                }).catch(() => cleanUp());
+            });
+        }
+
+        function saveToHTML() {
+            const state = { mainTitle: document.getElementById('inp-main-title').value, originName: document.getElementById('inp-origin-name').value, route: document.getElementById('inp-route').value, datePicker: document.getElementById('inp-date-picker').value, startTime: document.getElementById('start-time').value, interestCount: document.getElementById('interest-count').value, techCount: document.getElementById('tech-count').value, returnTransit: document.getElementById('return-transit').value, routeSchema: currentRouteSchema };
+            const docClone = document.documentElement.cloneNode(true);
+            docClone.querySelector('#saved-state').textContent = JSON.stringify(state);
+            const blob = new Blob(['<!DOCTYPE html>\n' + docClone.outerHTML], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.download = `Itinerario_${document.getElementById('inp-route').value.replace(/\s+/g, '_')}.html`;
+            link.href = URL.createObjectURL(blob); link.click();
+        }
+
+        /* --- CONTROL DE INICIALIZACIÓN WINDOW LOAD --- */
+        window.onload = function() {
+            try {
+                const stateTag = document.getElementById('saved-state');
+                if (stateTag && stateTag.textContent.trim()) {
+                    const s = JSON.parse(stateTag.textContent);
+                    if (s.mainTitle) document.getElementById('inp-main-title').value = s.mainTitle;
+                    if (s.originName) document.getElementById('inp-origin-name').value = s.originName;
+                    if (s.route) document.getElementById('inp-route').value = s.route;
+                    if (s.datePicker) document.getElementById('inp-date-picker').value = s.datePicker;
+                    if (s.startTime) document.getElementById('start-time').value = s.startTime;
+                    if (s.returnTransit) document.getElementById('return-transit').value = s.returnTransit;
+                    if (s.interestCount) selInt.value = s.interestCount;
+                    if (s.techCount) selTech.value = s.techCount;
+                    if (Array.isArray(s.routeSchema)) currentRouteSchema = s.routeSchema;
+                }
+            } catch (e) { console.warn('Estado no cargado:', e); }
+
+            const controlPanel = document.querySelector('.control-panel');
+            controlPanel.addEventListener('input', handleControlInput);
+            controlPanel.addEventListener('change', handleControlChange);
+            controlPanel.addEventListener('click', handleControlClick);
+
+            document.addEventListener('click', function(e) {
+                currentRouteSchema.forEach((_, idx) => {
+                    const picker = document.querySelector(`#stops-list-container > div:nth-child(${idx+1}) .emoji-picker-container`);
+                    if (picker && !picker.contains(e.target)) {
+                        const targetDrop = document.getElementById(`emoji-drop-${idx}`);
+                        if(targetDrop) targetDrop.style.display = 'none';
+                    }
+                });
+            });
+
+            renderControlInputs();
+            updateAll();
+        };
+
+        /* --- REGISTRO DEL SERVICE WORKER (PWA) --- */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW no registrado:', err));
+            });
+        }
+    </script>
+</body>
+</html>
